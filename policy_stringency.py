@@ -10,6 +10,8 @@ from sklearn.neighbors import KNeighborsClassifier
 from sklearn.ensemble import AdaBoostClassifier
 import json
 import os
+import matplotlib.pyplot as plt
+import seaborn as sns
 import warnings
 warnings.filterwarnings("ignore")
 
@@ -17,10 +19,16 @@ def read_state_data(state_name):
     state_df = df[df['RegionName'] == state_name]
     return state_df
 
-def run_predictions(state_df, all_cols, models=['random_forest', 'logistic_regression', 'svm', 'knn', 'ada_boost']):
+def run_predictions(state_df, all_cols, sample_size=10000, models=['random_forest', 'logistic_regression', 'svm', 'knn', 'ada_boost']):
+    
+    # Sample data for processing if the dataset is too large
+    if len(state_df) > sample_size:
+        state_df = state_df.sample(sample_size, random_state=42)
+        print(f"Dataset reduced to {sample_size} rows for efficiency.")
+    
     concise_state_df = state_df[all_cols]
     X = concise_state_df[all_ivs]
-    y = concise_state_df[brfss_target]
+    y = concise_state_df[brfss_target].values.ravel()
 
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
@@ -115,31 +123,61 @@ if __name__=="__main__":
     all_ivs = [col.replace(' ', '.').replace('/', '.') for col in all_ivs]
     all_cols = list(set(all_ivs + brfss_target))
 
-    if os.path.exists('state_predictions.json'):
-        with open('state_predictions.json', 'r') as f:
-            all_states_res = json.load(f)
-    else:
-        # iterate through regionNames in df
-        all_states_res = {}
-        regionNames = df['RegionName'].unique()
-        for state in regionNames:
-            state_df = read_state_data(state)
-            pred_res = run_predictions(state_df, all_cols)
-            all_states_res[state] = pred_res
-        
-        with open('state_predictions.json', 'w') as f:
-            json.dump(all_states_res, f)
+    # Create the stringency index
+    stringency_cols = variables_C + variables_H + variables_E
+    stringency_cols = [col.replace(' ', '.').replace('/', '.') for col in stringency_cols]
+    df['stringency_index'] = df[stringency_cols].sum(axis=1)
 
-    # get the best for each
-    best_pred = {}
-    for state, res in all_states_res.items():
-        best_acc = max(res.values())
-        best_pred[state] = best_acc
-    
-    print(best_pred)
-    print("Best performing state: ", max(best_pred, key=best_pred.get))
-    print("Worst performing state: ", min(best_pred, key=best_pred.get))
-    
-    state_predictions_df = pd.DataFrame(all_states_res).T
-    state_predictions_df.to_csv('state_predictions.csv')
+    # Categorize states by policy stringency
+    df['policy_category'] = pd.cut(
+        df['stringency_index'],
+        bins=[-float('inf'), 30, 60, float('inf')],
+        labels=['Low Restriction', 'Moderate Restriction', 'High Restriction']
+    )
+
+    # Group by policy category
+    group_results = {}
+    for category in df['policy_category'].dropna().unique():
+        print(f"Running predictions for {category} states...")
+        category_df = df[df['policy_category'] == category]
+        print(category_df)
+        if not category_df.empty:  # Ensure group is not empty
+            accuracy = run_predictions(category_df, all_cols, models=['random_forest', 'logistic_regression', 'svm', 'knn', 'ada_boost'])
+            group_results[category] = accuracy
+
+    # Save and display results
+    group_results_df = pd.DataFrame.from_dict(group_results, orient='index')
+    group_results_df.columns = ['random_forest', 'logistic_regression', 'svm', 'knn', 'ada_boost']
+    group_results_df.to_csv('policy_group_metrics.csv')
+
+    print("Policy Group Metrics:")
+    print(group_results_df)
+
+    # Group by policy category and calculate descriptive statistics for mental health
+    mental_health_stats = df.groupby('policy_category')['X_MENT14D'].agg(['mean', 'std', 'min', 'max', 'count'])
+    mental_health_stats.to_csv('mental_health_stats_by_policy.csv')
+    print("Mental Health Statistics by Policy Category:")
+    print(mental_health_stats)
+
+    # Plot distributions of mental health scores by policy category
+    plt.figure(figsize=(10, 6))
+    sns.boxplot(x='policy_category', y='X_MENT14D', data=df)
+    plt.title("Distribution of Mental Health Scores by Policy Restriction Level")
+    plt.xlabel("Policy Restriction Level")
+    plt.ylabel("Mental Health Score (X_MENT14D)")
+    plt.savefig("mental_health_by_policy_level.png")
+
+    # Group by policy category and calculate average income levels
+    economic_stats = df.groupby('policy_category')['INCOME2'].mean()
+
+    # Plot the results
+    economic_stats.plot(kind='bar', figsize=(8, 5), title='Average Income Levels by Policy Restriction Level')
+    plt.xlabel('Policy Restriction Level')
+    plt.ylabel('Average Income Level')
+    plt.xticks(rotation=0)
+    plt.savefig("income_by_policy_level.png")
+
+
+
+
 
