@@ -105,3 +105,12 @@ Service Access: Differences in healthcare access or public health initiatives co
 
 Conclusion
 Overall, while both Mississippi and Michigan faced significant mental health challenges during the COVID-19 pandemic, Mississippi's effective use of telehealth services, lower economic stress in certain sectors, and strong community support contributed to a relatively better mental health status compared to Michigan.
+
+Reference:
+1. Preparing for the Behavioral Health Impact of COVID-19 in Michigan - PMC
+2. See how Michigan compares to other states in mental health status during pandemic - mlive.com
+3. Tracking the Impact of COVID-19 and Lockdown Policies on Public Mental Health Using Social Media: Infoveillance Study - PMC
+4. Tele-Mental Health Service: Unveiling the Disparity and Impact on Healthcare Access and Expenditures during the COVID-19
+5. Pandemic in Mississippi - PMC
+6. Explore Social and Economic Factors in Mississippi | AHR
+6. Socioeconomic Status and Well-Being during COVID-19: A Resource Based Examination - PMC
