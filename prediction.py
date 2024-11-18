@@ -138,6 +138,7 @@ if __name__=="__main__":
     
     print(best_pred)
     print("Best performing state: ", max(best_pred, key=best_pred.get))
+    print()
     print("Worst performing state: ", min(best_pred, key=best_pred.get))
     
     state_predictions_df = pd.DataFrame(all_states_res).T

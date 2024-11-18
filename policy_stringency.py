@@ -127,6 +127,7 @@ if __name__=="__main__":
     stringency_cols = variables_C + variables_H + variables_E
     stringency_cols = [col.replace(' ', '.').replace('/', '.') for col in stringency_cols]
     df['stringency_index'] = df[stringency_cols].sum(axis=1)
+    df = df[df['X_MENT14D'] != 9]
 
     # Categorize states by policy stringency
     df['policy_category'] = pd.cut(
